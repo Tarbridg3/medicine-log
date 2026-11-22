@@ -94,6 +94,21 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
 .eodlist{margin:0;padding-left:18px;font-size:.9rem;overflow-wrap:anywhere}
 .eodbtns{display:flex;flex-wrap:wrap;gap:8px}
 .log{display:grid;gap:22px;min-width:0}
+.cal{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px}
+.calhead{display:flex;align-items:center;gap:8px}
+.calhead h2{flex:1;min-width:0;margin:0;text-align:center;font-size:1.05rem;color:var(--gold-text)}
+.calnav{font-size:1.1rem;line-height:1;padding:4px 12px}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.dow{text-align:center;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:2px 0}
+.cd{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:48px;min-width:0;padding:0;border-radius:8px;border:1px solid transparent;background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:.92rem}
+.cd:hover{border-color:var(--gold)}
+.cd.today{border-color:var(--gold)}
+.cd.sel{background:var(--gold);color:var(--gold-ink);border-color:var(--gold);font-weight:600}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--gold)}
+.dot.off{background:transparent}
+.cd.sel .dot{background:var(--gold-ink)}
+.calnote{margin:0;font-size:.8rem;color:var(--muted)}
+.dayttl{display:flex;justify-content:space-between;align-items:baseline;gap:10px;color:var(--on-page)}
 .dayhead{display:flex;gap:10px;align-items:center;margin:0 0 8px}
 .day h3{flex:1;min-width:0;margin:0;font-size:.95rem;font-weight:600}
 .daytoggle{display:flex;width:100%;justify-content:space-between;align-items:baseline;gap:10px;background:none;border:0;border-radius:4px;padding:4px 0;color:var(--on-page);font:inherit;font-weight:600;text-align:left;cursor:pointer}
@@ -192,6 +207,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
 
     <div class="right">
       <section class="eod" id="eod" hidden aria-label="End of day"></section>
+      <section class="cal" id="cal" aria-label="Calendar"></section>
       <section class="log" id="log" aria-live="polite"></section>
     </div>
   </div>
@@ -205,7 +221,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
   var BASE_PURPS=["Pain relief","Muscle relaxer","Nausea","Reflux control"];
   var custom={meds:[],purps:[],hidMeds:[],hidPurps:[]}, listDoc=null, mgrArmed=null, mgrTimer=null, LSL="medicine-log-lists";
   var entries=[], col=null, mode="device", armed=null, armTimer=null, snapTimer=null;
-  var eodOpen=false, eodDate=null, editingId=null, origEntry=null, openDays={};
+  var eodOpen=false, eodDate=null, editingId=null, origEntry=null, viewDay=null, calMonth=null;
   var LS="medicine-log-entries";
 
   function pad(n){return String(n).padStart(2,"0")}
@@ -379,51 +395,82 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
   }
 
   /* ---------- render ---------- */
-  function render(){
-    renderEod();
-    var log=$("log");log.textContent="";
-    if(!entries.length){
-      var em=el("div","empty");em.appendChild(el("strong",null,"No doses logged yet"));
-      em.appendChild(el("span",null,"Fill in the form and choose Add to log. Each dose appears here under its date."));
-      log.appendChild(em);return;
+  function monthOf(day){var p=day.split("-");return{y:+p[0],m:+p[1]-1}}
+  function dayStr(y,m,d){return y+"-"+pad(m+1)+"-"+pad(d)}
+  function selDay(){return viewDay||todayStr()}
+  function curMonth(){return calMonth||monthOf(selDay())}
+
+  function renderCal(){
+    var box=$("cal");box.textContent="";
+    var cm=curMonth(),sel=selDay(),today=todayStr(),counts={};
+    entries.forEach(function(e){counts[e.date]=(counts[e.date]||0)+1});
+    var head=el("div","calhead");
+    var prev=el("button","mini calnav","\u2039");prev.type="button";prev.setAttribute("aria-label","Previous month");
+    prev.onclick=function(){var m=cm.m-1,y=cm.y;if(m<0){m=11;y--}calMonth={y:y,m:m};renderCal()};
+    var next=el("button","mini calnav","\u203A");next.type="button";next.setAttribute("aria-label","Next month");
+    next.onclick=function(){var m=cm.m+1,y=cm.y;if(m>11){m=0;y++}calMonth={y:y,m:m};renderCal()};
+    var tb=el("button","mini","Today");tb.type="button";tb.onclick=function(){viewDay=null;calMonth=null;render()};
+    head.appendChild(prev);
+    head.appendChild(el("h2",null,new Date(cm.y,cm.m,1).toLocaleDateString(undefined,{month:"long",year:"numeric"})));
+    head.appendChild(next);head.appendChild(tb);
+    var grid=el("div","calgrid");
+    ["Su","Mo","Tu","We","Th","Fr","Sa"].forEach(function(n){grid.appendChild(el("div","dow",n))});
+    for(var i=0,first=new Date(cm.y,cm.m,1).getDay();i<first;i++)grid.appendChild(el("div","cdgap"));
+    for(var d=1,n=new Date(cm.y,cm.m+1,0).getDate();d<=n;d++){
+      (function(day,num){
+        var c=counts[day]||0,b=el("button","cd"+(day===today?" today":"")+(day===sel?" sel":""));b.type="button";
+        b.appendChild(el("span","num",String(num)));b.appendChild(el("span","dot"+(c?"":" off")));
+        b.setAttribute("aria-label",fmtDate(day)+", "+c+(c===1?" dose":" doses")+(day===today?", today":""));
+        b.setAttribute("aria-pressed",String(day===sel));
+        b.onclick=function(){viewDay=(day===today?null:day);render()};
+        grid.appendChild(b);
+      })(dayStr(cm.y,cm.m,d),d);
     }
-    var byDay={};entries.forEach(function(e){(byDay[e.date]=byDay[e.date]||[]).push(e)});
-    Object.keys(byDay).sort().reverse().forEach(function(day){
-      var list=dayEntries(day);
-      var isOpen=openDays.hasOwnProperty(day)?openDays[day]:(day===todayStr());
-      var sec=el("div","day"),h=el("h3"),tg=el("button","daytoggle");tg.type="button";tg.setAttribute("aria-expanded",String(isOpen));
-      var ttl=el("span","dtitle");ttl.appendChild(el("span","chev",isOpen?"\u25BE":"\u25B8"));ttl.appendChild(document.createTextNode(fmtDate(day)));
-      tg.appendChild(ttl);tg.appendChild(el("span","dcount",list.length+(list.length===1?" dose":" doses")+(isOpen?"":" - tap to open")));
-      tg.onclick=function(){openDays[day]=!isOpen;render()};
-      h.appendChild(tg);
-      var dh=el("div","dayhead");dh.appendChild(h);
+    box.appendChild(head);box.appendChild(grid);
+    box.appendChild(el("p","calnote","A gold dot marks a day with doses logged. Click a day to see its log."));
+  }
+
+  function render(){
+    renderEod();renderCal();
+    var log=$("log");log.textContent="";
+    var day=selDay(),list=dayEntries(day);
+    var sec=el("div","day"),dh=el("div","dayhead"),h=el("h3"),tt=el("span","dayttl");
+    tt.appendChild(el("span",null,fmtDate(day)+(day===todayStr()?" (today)":"")));
+    tt.appendChild(el("span","dcount",list.length+(list.length===1?" dose":" doses")));
+    h.appendChild(tt);dh.appendChild(h);
+    if(list.length){
       var pb=el("button","mini printbtn","Print Meds");pb.type="button";pb.setAttribute("aria-label","Print "+fmtDate(day));
       pb.onclick=function(){openPdf("medicine-log-"+day+".pdf",dayPdf(list,day))};
-      dh.appendChild(pb);sec.appendChild(dh);
-      if(!isOpen){log.appendChild(sec);return}
-      var box=el("div","entries");
-      list.forEach(function(e){
-        var r=el("div","row"+(editingId===e.id?" editing":""));
-        r.appendChild(el("div","time",fmtTime(e.time)));
-        var m=el("div","medcell");medLines(e).forEach(function(n){m.appendChild(el("div","med",n))});
-        if(purposeOf(e))m.appendChild(el("div","purpose",purposeOf(e)));r.appendChild(m);
-        r.appendChild(el("div","qty",e.qty));
-        var s=el("div","side"+(e.side?"":" none"));
-        if(e.side){s.appendChild(el("span","flag","Side effects"));s.appendChild(el("div",null,e.side))}else s.textContent="No side effects";
-        r.appendChild(s);
-        var b=el("button","del",armed===e.id?"Confirm delete":"Delete");b.type="button";
-        if(armed===e.id)b.classList.add("arm");
-        b.setAttribute("aria-label","Delete "+namesOf(e).join(", ")+" at "+fmtTime(e.time));
-        b.onclick=function(){
-          if(armed===e.id){armed=null;clearTimeout(armTimer);remove(e.id)}
-          else{armed=e.id;clearTimeout(armTimer);armTimer=setTimeout(function(){armed=null;render()},3500);render()}
-        };
-        var ed=el("button","mini","Edit");ed.type="button";ed.setAttribute("aria-label","Edit "+namesOf(e).join(", ")+" at "+fmtTime(e.time));ed.onclick=function(){startEdit(e)};
-        var dp=el("button","mini","Duplicate");dp.type="button";dp.setAttribute("aria-label","Duplicate "+namesOf(e).join(", ")+" at "+fmtTime(e.time));dp.onclick=function(){startDuplicate(e)};
-        var rb=el("div","rowbtns");rb.appendChild(ed);rb.appendChild(dp);rb.appendChild(b);r.appendChild(rb);box.appendChild(r);
-      });
-      sec.appendChild(box);log.appendChild(sec);
+      dh.appendChild(pb);
+    }
+    sec.appendChild(dh);
+    if(!list.length){
+      var em=el("div","empty");em.appendChild(el("strong",null,"No doses logged"));
+      em.appendChild(el("span",null,day===todayStr()?"Fill in the form and choose Add to log. Each dose appears here.":"Nothing was logged on this day."));
+      sec.appendChild(em);log.appendChild(sec);return;
+    }
+    var box=el("div","entries");
+    list.forEach(function(e){
+      var r=el("div","row"+(editingId===e.id?" editing":""));
+      r.appendChild(el("div","time",fmtTime(e.time)));
+      var m=el("div","medcell");medLines(e).forEach(function(n){m.appendChild(el("div","med",n))});
+      if(purposeOf(e))m.appendChild(el("div","purpose",purposeOf(e)));r.appendChild(m);
+      r.appendChild(el("div","qty",e.qty));
+      var s=el("div","side"+(e.side?"":" none"));
+      if(e.side){s.appendChild(el("span","flag","Side effects"));s.appendChild(el("div",null,e.side))}else s.textContent="No side effects";
+      r.appendChild(s);
+      var b=el("button","del",armed===e.id?"Confirm delete":"Delete");b.type="button";
+      if(armed===e.id)b.classList.add("arm");
+      b.setAttribute("aria-label","Delete "+namesOf(e).join(", ")+" at "+fmtTime(e.time));
+      b.onclick=function(){
+        if(armed===e.id){armed=null;clearTimeout(armTimer);remove(e.id)}
+        else{armed=e.id;clearTimeout(armTimer);armTimer=setTimeout(function(){armed=null;render()},3500);render()}
+      };
+      var ed=el("button","mini","Edit");ed.type="button";ed.setAttribute("aria-label","Edit "+namesOf(e).join(", ")+" at "+fmtTime(e.time));ed.onclick=function(){startEdit(e)};
+      var dp=el("button","mini","Duplicate");dp.type="button";dp.setAttribute("aria-label","Duplicate "+namesOf(e).join(", ")+" at "+fmtTime(e.time));dp.onclick=function(){startDuplicate(e)};
+      var rb=el("div","rowbtns");rb.appendChild(ed);rb.appendChild(dp);rb.appendChild(b);r.appendChild(rb);box.appendChild(r);
     });
+    sec.appendChild(box);log.appendChild(sec);
   }
 
   function renderEod(){
@@ -470,7 +517,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
     if(!e.date||!e.time||!names.length||!e.qty){say("Date, time, medicine and quantity are required.",true);return}
     var ok=await save(e);
     if(ok){
-      openDays[e.date]=true;
+      viewDay=(e.date===todayStr()?null:e.date);calMonth=monthOf(e.date);
       var was=editingId;
       editingId=null;origEntry=null;setEditUi(false);
       msel.value="";$("dose").value="";psel.value="";
