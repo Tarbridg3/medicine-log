@@ -119,8 +119,8 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
       <p class="sub" id="today"></p>
     </div>
     <div class="actions">
-      <button type="button" id="blank">Blank log page (PDF)</button>
-      <button type="button" id="csv">Save my log (CSV)</button>
+      <button type="button" id="blank">Blank Page</button>
+      <button type="button" id="export">Export Data</button>
       <button type="button" id="eodbtn" class="gold">End of day</button>
     </div>
   </header>
@@ -134,7 +134,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
       </div>
       <div class="medrow">
         <label for="med">Medicine<select id="med"></select></label>
-        <label for="dose">Dose (mg)<input id="dose" type="number" min="0" step="any" inputmode="decimal" placeholder="mg"></label>
+        <label for="dose">Dose (mg)<input id="dose" type="number" min="0" step="any" inputmode="decimal"></label>
       </div>
       <label for="purpose">Purpose<select id="purpose"></select></label>
       <fieldset class="qtyset">
@@ -146,7 +146,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
           <label class="rad"><input type="radio" name="qty" value="4"><span>4</span></label>
         </div>
       </fieldset>
-      <label for="side">Side effects, if any<textarea id="side" placeholder="Leave empty if none"></textarea></label>
+      <label for="side">Side effects, if any<textarea id="side"></textarea></label>
       <button type="submit" class="primary" id="fsub">Add to log</button>
       <button type="button" id="fcancel" hidden>Cancel edit</button>
       <p class="status" id="status" role="status"></p>
@@ -187,8 +187,8 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
 
   /* ---------- form controls ---------- */
   var msel=$("med"), psel=$("purpose");
-  [""].concat(MEDS).forEach(function(m){var o=document.createElement("option");o.value=m;o.textContent=m||"Select medicine";msel.appendChild(o)});
-  [""].concat(PURPS).forEach(function(m){var o=document.createElement("option");o.value=m;o.textContent=m||"Select purpose";psel.appendChild(o)});
+  [""].concat(MEDS).forEach(function(m){var o=document.createElement("option");o.value=m;o.textContent=m;msel.appendChild(o)});
+  [""].concat(PURPS).forEach(function(m){var o=document.createElement("option");o.value=m;o.textContent=m;psel.appendChild(o)});
   function picked(){return msel.value?[msel.value]:[]}
   function pickedPurps(){return psel.value?[psel.value]:[]}
   function doseOf(n){return n&&msel.value===n?$("dose").value.trim():""}
@@ -354,7 +354,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
     var dl=window.claude&&window.claude.use?await window.claude.use("downloads"):null;
     if(!dl){
       try{
-        var type=/\.pdf$/.test(name)?"application/pdf":"text/csv;charset=utf-8";
+        var type=/\.pdf$/.test(name)?"application/pdf":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
         var u=URL.createObjectURL(new Blob([data],{type:type})),a=document.createElement("a");
         a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
         setTimeout(function(){URL.revokeObjectURL(u)},1000);say("Saved "+name+".");
@@ -404,20 +404,20 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
     if(day)p.txt("F1",11,PM+290,PH-PM-44,"Date: "+day);
     else{p.txt("F1",11,PM+290,PH-PM-44,"Month / Year:");p.ln(PM+375,PH-PM-46,PW-PM,PH-PM-46)}
   }
-  function startPage(day,noTable){
-    var p=Page();drawHeader(p,day);
+  function startPage(day,noTable,top){
+    var p=Page(),t=top||TOP;if(!top)drawHeader(p,day);
     if(noTable)return{p:p,bottom:null};
-    p.rect(PM,TOP-HH,TW,HH,0.86);p.ln(PM,TOP,PM+TW,TOP);p.ln(PM,TOP-HH,PM+TW,TOP-HH);
+    p.rect(PM,t-HH,TW,HH,0.86);p.ln(PM,t,PM+TW,t);p.ln(PM,t-HH,PM+TW,t-HH);
     var x=PM;
     HEADS.forEach(function(h,i){
-      h.forEach(function(s,k){p.txt("F2",10.5,x+(COLS[i]-tw(s,10.5,true))/2,h.length===1?TOP-19:TOP-13-k*12,s)});
+      h.forEach(function(s,k){p.txt("F2",10.5,x+(COLS[i]-tw(s,10.5,true))/2,h.length===1?t-19:t-13-k*12,s)});
       x+=COLS[i];
     });
-    return{p:p,bottom:TOP-HH};
+    return{p:p,bottom:t-HH,top:t};
   }
   function finish(pg){
     if(pg.bottom==null)return;
-    var x=PM;for(var i=0;i<=COLS.length;i++){pg.p.ln(x,TOP,x,pg.bottom);x+=COLS[i]||0}
+    var x=PM;for(var i=0;i<=COLS.length;i++){pg.p.ln(x,pg.top||TOP,x,pg.bottom);x+=COLS[i]||0}
   }
   function buildPdf(contents){
     var objs=["<< /Type /Catalog /Pages 2 0 R >>",null,
@@ -437,17 +437,10 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
       "trailer\n<< /Size "+(objs.length+1)+" /Root 1 0 R >>\nstartxref\n"+xr+"\n%%EOF";
     return out;
   }
-  function optLine(p,x,y,words,gap){words.forEach(function(w){p.txt("F1",8,x,y,w,0.15);x+=tw(w,8)+gap})}
-
   function blankPdf(){
-    var pg=startPage(null),p=pg.p,y=pg.bottom,xm=PM+COLS[0]+COLS[1]+5,xp=xm+COLS[2];
-    for(var r=0;r<16;r++){
-      var top=y;y-=MINROW;p.ln(PM,y,PM+TW,y);
-      optLine(p,xm,top-14,MEDS.slice(0,3),5);optLine(p,xm,top-27,MEDS.slice(3),5);
-      optLine(p,xp,top-14,PURPS.slice(0,2),6);optLine(p,xp,top-27,PURPS.slice(2),6);
-    }
+    var pg=startPage(null,false,PH-PM),p=pg.p,y=pg.bottom;
+    for(var r=0;r<19;r++){y-=MINROW;p.ln(PM,y,PM+TW,y)}
     pg.bottom=y;finish(pg);
-    p.txt("F3",9,PM,y-16,"Circle the medicine and purpose. Report any side effects to your doctor or pharmacist.");
     return buildPdf([p.out()]);
   }
 
@@ -486,13 +479,71 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
   }
   $("blank").onclick=function(){saveFile("medicine-log-blank.pdf",blankPdf())};
 
-  $("csv").onclick=function(){
-    if(!entries.length){say("Nothing to save yet. Add a dose first.",true);return}
-    var q=function(v){v=v==null?"":String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
-    var rows=entries.slice().sort(function(a,b){return (a.date+a.time).localeCompare(b.date+b.time)});
-    var out=["Date,Time,Medicine,Purpose,Quantity taken,Side effects"].concat(rows.map(function(e){
-      return [e.date,e.time,medLines(e).join("; "),purposeOf(e),e.qty,e.side].map(q).join(",")})).join("\n");
-    saveFile("medicine-log.csv",out);
+  /* ---------- Excel export (.xlsx, built without libraries) ---------- */
+  function crc32(u8){
+    var t=crc32.t;
+    if(!t){t=crc32.t=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}}
+    var crc=0xFFFFFFFF;for(var i=0;i<u8.length;i++)crc=t[(crc^u8[i])&255]^(crc>>>8);
+    return (crc^0xFFFFFFFF)>>>0;
+  }
+  function zipStore(files){
+    var enc=new TextEncoder(),parts=[],cd=[],off=0;
+    files.forEach(function(f){
+      var nm=enc.encode(f.name),d=enc.encode(f.data),crc=crc32(d);
+      var h=new DataView(new ArrayBuffer(30));
+      h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(8,0,true);h.setUint16(10,0,true);h.setUint16(12,0x21,true);
+      h.setUint32(14,crc,true);h.setUint32(18,d.length,true);h.setUint32(22,d.length,true);h.setUint16(26,nm.length,true);h.setUint16(28,0,true);
+      parts.push(new Uint8Array(h.buffer),nm,d);
+      var c=new DataView(new ArrayBuffer(46));
+      c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(10,0,true);c.setUint16(12,0,true);c.setUint16(14,0x21,true);
+      c.setUint32(16,crc,true);c.setUint32(20,d.length,true);c.setUint32(24,d.length,true);c.setUint16(28,nm.length,true);
+      c.setUint16(30,0,true);c.setUint16(32,0,true);c.setUint16(34,0,true);c.setUint16(36,0,true);c.setUint32(38,0,true);c.setUint32(42,off,true);
+      cd.push(new Uint8Array(c.buffer),nm);
+      off+=30+nm.length+d.length;
+    });
+    var cdLen=0;cd.forEach(function(x){cdLen+=x.length});
+    var e=new DataView(new ArrayBuffer(22));
+    e.setUint32(0,0x06054b50,true);e.setUint16(4,0,true);e.setUint16(6,0,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);
+    e.setUint32(12,cdLen,true);e.setUint32(16,off,true);e.setUint16(20,0,true);
+    var all=parts.concat(cd,[new Uint8Array(e.buffer)]),n=0;all.forEach(function(x){n+=x.length});
+    var out=new Uint8Array(n),p=0;all.forEach(function(x){out.set(x,p);p+=x.length});
+    return out;
+  }
+  function xlsxBytes(rows,widths){
+    var X='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+    var esc=function(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,"")};
+    var colL=function(i){return String.fromCharCode(65+i)};
+    var cols='<cols>'+widths.map(function(w,i){return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>'}).join("")+'</cols>';
+    var data=rows.map(function(r,ri){
+      return '<row r="'+(ri+1)+'">'+r.map(function(v,ci){
+        var ref=colL(ci)+(ri+1);
+        if(typeof v==="number")return '<c r="'+ref+'"><v>'+v+'</v></c>';
+        return '<c r="'+ref+'" t="inlineStr"'+(ri===0?' s="1"':'')+'><is><t xml:space="preserve">'+esc(v)+'</t></is></c>';
+      }).join("")+'</row>';
+    }).join("");
+    var NS='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
+    var sheet=X+'<worksheet '+NS+'><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'+cols+'<sheetData>'+data+'</sheetData></worksheet>';
+    var styles=X+'<styleSheet '+NS+'><fonts count="2"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+    var RT="http://schemas.openxmlformats.org/officeDocument/2006/relationships",PR="http://schemas.openxmlformats.org/package/2006/relationships";
+    return zipStore([
+      {name:"[Content_Types].xml",data:X+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'},
+      {name:"_rels/.rels",data:X+'<Relationships xmlns="'+PR+'"><Relationship Id="rId1" Type="'+RT+'/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+      {name:"xl/workbook.xml",data:X+'<workbook '+NS+' xmlns:r="'+RT+'"><bookViews><workbookView/></bookViews><sheets><sheet name="Medicine Log" sheetId="1" r:id="rId1"/></sheets></workbook>'},
+      {name:"xl/_rels/workbook.xml.rels",data:X+'<Relationships xmlns="'+PR+'"><Relationship Id="rId1" Type="'+RT+'/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="'+RT+'/styles" Target="styles.xml"/></Relationships>'},
+      {name:"xl/styles.xml",data:styles},
+      {name:"xl/worksheets/sheet1.xml",data:sheet}
+    ]);
+  }
+  $("export").onclick=function(){
+    if(!entries.length){say("Nothing to export yet. Add a dose first.",true);return}
+    var rows=entries.slice().sort(function(a,b){return (a.date+a.time).localeCompare(b.date+b.time)||(a.ts||0)-(b.ts||0)});
+    var num=function(v){return /^-?\d+(\.\d+)?$/.test(String(v))?Number(v):(v==null?"":v)};
+    var sheet=[["Date","Time","Medicine","Dose (mg)","Purpose","Quantity taken","Side effects"]].concat(rows.map(function(e){
+      var names=namesOf(e),doses=names.map(function(n){return e.doses&&e.doses[n]?e.doses[n]:""});
+      var dose=names.length===1?num(doses[0]):(doses.some(Boolean)?doses.join("; "):"");
+      return [e.date,fmtTime(e.time),names.join("; "),dose,purposeOf(e),num(e.qty),e.side||""];
+    }));
+    saveFile("medicine-log.xlsx",xlsxBytes(sheet,[12,11,20,11,18,15,40]));
   };
 
   init();
