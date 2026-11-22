@@ -13,7 +13,7 @@ body{margin:0}
 /* Layout: black banner header with gold rule, sticky entry form on the left, end-of-day panel and day-by-day log on the right; stacks on phones. One black and gold theme. */
 :root{
   color-scheme:dark;
-  --bg:#101820; --surface:#1a2631; --fg:#f2f4f5; --muted:#9fabb1; --line:#30404c;
+  --page:#006778; --on-page:#ffffff; --on-page-muted:#cfe4e8; --bg:#101820; --surface:#1a2631; --fg:#f2f4f5; --muted:#9fabb1; --line:#30404c;
   --accent:#d7a22a; --accent-fg:#101820; --accent-soft:#2b2616;
   --gold:#d7a22a; --gold-dark:#9f792c; --gold-ink:#101820; --gold-soft:#33290f; --gold-text:#f0c867;
   --ink:#070b0e; --ink-fg:#f2f4f5; --ink-muted:#aab6bb;
@@ -22,10 +22,10 @@ body{margin:0}
   --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.45;
+body{background:var(--page);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.45;
   padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .wrap{max-width:1120px;margin:0 auto}
-header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;background:var(--ink);color:var(--ink-fg);padding:20px;border-radius:10px;border-bottom:4px solid var(--gold)}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;background:var(--ink);color:var(--ink-fg);padding:20px;border-radius:10px}
 h1{color:var(--gold);font-size:1.9rem;line-height:1.1;margin:0;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
 .sub{margin:6px 0 0;color:var(--muted);font-family:var(--mono);font-size:.85rem}
 .actions{display:flex;flex-wrap:wrap;gap:8px}
@@ -75,18 +75,18 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
 .status{min-height:1.3em;margin:0;font-size:.85rem;color:var(--muted)}
 .status.err{color:var(--warn)}
 .right{display:grid;gap:22px;min-width:0}
-.eod{background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:18px;display:grid;gap:14px}
+.eod{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:14px}
 .eod h2{margin:0;font-size:1.1rem;color:var(--gold)}
 .eodhead{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
 .eodhead label{width:100%;max-width:190px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{border:1px solid var(--gold-dark);background:var(--accent-soft);border-radius:6px;padding:4px 10px;font-size:.88rem}
+.chip{border:1px solid var(--line);background:var(--accent-soft);border-radius:6px;padding:4px 10px;font-size:.88rem}
 .chip b{font-family:var(--mono);font-weight:500;margin-left:6px}
 .eodlist{margin:0;padding-left:18px;font-size:.9rem;overflow-wrap:anywhere}
 .eodbtns{display:flex;flex-wrap:wrap;gap:8px}
 .log{display:grid;gap:22px;min-width:0}
-.day h3{color:var(--gold);margin:0 0 8px;display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:.95rem;font-weight:600}
-.day h3 span{font-family:var(--mono);font-weight:400;font-size:.8rem;color:var(--muted)}
+.day h3{color:var(--on-page);margin:0 0 8px;display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:.95rem;font-weight:600}
+.day h3 span{font-family:var(--mono);font-weight:400;font-size:.8rem;color:var(--on-page-muted)}
 .entries{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .row{display:grid;grid-template-columns:5.5rem minmax(0,1.3fr) minmax(0,.8fr) minmax(0,1fr) auto;gap:6px 14px;align-items:start;padding:12px 14px;border-top:1px solid var(--line)}
 .row:first-child{border-top:0}
@@ -97,15 +97,17 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
 .side{font-size:.9rem;overflow-wrap:anywhere}
 .side.none{color:var(--muted)}
 .flag{display:inline-block;background:var(--gold-soft);color:var(--gold-text);border-radius:4px;padding:1px 7px;font-size:.8rem;font-weight:600;margin-bottom:2px}
-.del{padding:4px 9px;font-size:.8rem;color:var(--muted)}
+.del,.mini{padding:4px 9px;font-size:.8rem;color:var(--muted)}
+.rowbtns{display:flex;gap:6px;align-items:flex-start}
+.row.editing{background:var(--accent-soft)}
 .del.arm{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
 @media (max-width:640px){
   .row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"time del" "med med" "qty qty" "side side"}
-  .row .time{grid-area:time}.row .del{grid-area:del}.row .medcell{grid-area:med}.row .qty{grid-area:qty}.row .side{grid-area:side}
+  .row .time{grid-area:time}.row .rowbtns{grid-area:del;justify-self:end}.row .medcell{grid-area:med}.row .qty{grid-area:qty}.row .side{grid-area:side}
 }
-.empty{background:var(--surface);border:1px dashed var(--gold-dark);border-radius:10px;padding:32px 20px;text-align:center;color:var(--muted)}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:32px 20px;text-align:center;color:var(--muted)}
 .empty strong{display:block;color:var(--fg);font-size:1.05rem;margin-bottom:4px}
-.note{margin:14px 0 0;color:var(--muted);font-size:.82rem;max-width:64ch}
+.note{margin:14px 0 0;color:var(--on-page-muted);font-size:.82rem;max-width:64ch}
 </style>
 </head>
 <body>
@@ -125,7 +127,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
 
   <div class="grid">
     <form id="f" autocomplete="off">
-      <h2>Add a dose</h2>
+      <h2 id="ftitle">Add a dose</h2>
       <div class="two">
         <label for="date">Date<input id="date" type="date" required></label>
         <label for="time">Time<input id="time" type="time" required></label>
@@ -145,7 +147,8 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
         </div>
       </fieldset>
       <label for="side">Side effects, if any<textarea id="side" placeholder="Leave empty if none"></textarea></label>
-      <button type="submit" class="primary">Add to log</button>
+      <button type="submit" class="primary" id="fsub">Add to log</button>
+      <button type="button" id="fcancel" hidden>Cancel edit</button>
       <p class="status" id="status" role="status"></p>
     </form>
 
@@ -163,7 +166,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
   var MEDS=["Morphine","Omeprazole","Oxycodone","Stool Softener","Tizanidine"].sort();
   var PURPS=["Pain relief","Muscle relaxer","Nausea","Reflux control"];
   var entries=[], col=null, mode="device", armed=null, armTimer=null, snapTimer=null;
-  var eodOpen=false, eodDate=null;
+  var eodOpen=false, eodDate=null, editingId=null, origEntry=null;
   var LS="medicine-log-entries";
 
   function pad(n){return String(n).padStart(2,"0")}
@@ -190,6 +193,27 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
   function pickedPurps(){return psel.value?[psel.value]:[]}
   function doseOf(n){return n&&msel.value===n?$("dose").value.trim():""}
   function medText(n){var d=doseOf(n);return d?n+" "+d+" mg":n}
+  function ensureOpt(sel,v){if(v&&!Array.prototype.some.call(sel.options,function(o){return o.value===v})){var o=document.createElement("option");o.value=v;o.textContent=v;sel.appendChild(o)}}
+  function resetForm(){
+    msel.value="";$("dose").value="";psel.value="";
+    Array.prototype.forEach.call(document.querySelectorAll("input[name=qty]"),function(i){i.checked=false});
+    $("side").value="";$("date").value=todayStr();$("time").value=nowStr();
+  }
+  function setEditUi(on){$("ftitle").textContent=on?"Edit dose":"Add a dose";$("fsub").textContent=on?"Save changes":"Add to log";$("fcancel").hidden=!on}
+  function cancelEdit(){editingId=null;origEntry=null;resetForm();setEditUi(false);render()}
+  function startEdit(e){
+    editingId=e.id;origEntry=e;
+    var names=namesOf(e),mv=names.length>1?(e.med||names.join(", ")):(names[0]||""),pv=purposeOf(e);
+    ensureOpt(msel,mv);ensureOpt(psel,pv);
+    $("date").value=e.date;$("time").value=e.time;msel.value=mv;
+    $("dose").value=names.length===1&&e.doses&&e.doses[names[0]]?e.doses[names[0]]:"";
+    psel.value=pv;
+    Array.prototype.forEach.call(document.querySelectorAll("input[name=qty]"),function(i){i.checked=(i.value===String(e.qty))});
+    $("side").value=e.side||"";
+    setEditUi(true);say("Editing the "+fmtTime(e.time)+" dose. Change anything, then choose Save changes.");
+    render();$("f").scrollIntoView({block:"start"});
+  }
+  $("fcancel").onclick=function(){cancelEdit();say("Edit cancelled.")};
 
   /* ---------- storage ---------- */
   function lsRead(){try{return JSON.parse(localStorage.getItem(LS)||"[]")}catch(e){return []}}
@@ -223,10 +247,11 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
   async function save(entry){
     if(mode==="account"){
       try{await col.doc(entry.id).set(entry)}catch(e){say("Couldn't save that entry. Try again.",true);return false}
-    }else{entries.push(entry);lsWrite();render()}
+    }else{var ix=entries.findIndex(function(x){return x.id===entry.id});if(ix>=0)entries[ix]=entry;else entries.push(entry);lsWrite();render()}
     return true;
   }
   async function remove(id){
+    if(id===editingId)cancelEdit();
     if(mode==="account"){
       try{await col.doc(id).delete()}catch(e){say("Couldn't delete that entry. Try again.",true)}
     }else{entries=entries.filter(function(x){return x.id!==id});lsWrite();render()}
@@ -248,7 +273,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
       h.appendChild(el("span",null,list.length+(list.length===1?" dose":" doses")));sec.appendChild(h);
       var box=el("div","entries");
       list.forEach(function(e){
-        var r=el("div","row");
+        var r=el("div","row"+(editingId===e.id?" editing":""));
         r.appendChild(el("div","time",fmtTime(e.time)));
         var m=el("div","medcell");medLines(e).forEach(function(n){m.appendChild(el("div","med",n))});
         if(purposeOf(e))m.appendChild(el("div","purpose",purposeOf(e)));r.appendChild(m);
@@ -263,7 +288,8 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
           if(armed===e.id){armed=null;clearTimeout(armTimer);remove(e.id)}
           else{armed=e.id;clearTimeout(armTimer);armTimer=setTimeout(function(){armed=null;render()},3500);render()}
         };
-        r.appendChild(b);box.appendChild(r);
+        var ed=el("button","mini","Edit");ed.type="button";ed.setAttribute("aria-label","Edit "+namesOf(e).join(", ")+" at "+fmtTime(e.time));ed.onclick=function(){startEdit(e)};
+        var rb=el("div","rowbtns");rb.appendChild(ed);rb.appendChild(b);r.appendChild(rb);box.appendChild(r);
       });
       sec.appendChild(box);log.appendChild(sec);
     });
@@ -305,16 +331,21 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
     ev.preventDefault();
     var names=picked(),purps=pickedPurps(),doses={};
     names.forEach(function(n){var d=doseOf(n);if(d)doses[n]=d});
-    var e={id:"e"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-      date:$("date").value,time:$("time").value,meds:names,doses:doses,med:names.map(medText).join(", "),
-      purposes:purps,purpose:purps.join(", "),qty:(document.querySelector("input[name=qty]:checked")||{}).value||"",side:$("side").value.trim(),ts:Date.now()};
+    var keepMulti=editingId&&origEntry&&namesOf(origEntry).length>1&&msel.value===(origEntry.med||namesOf(origEntry).join(", "));
+    if(keepMulti){names=namesOf(origEntry);doses=origEntry.doses||{}}
+    var e={id:editingId||("e"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
+      date:$("date").value,time:$("time").value,meds:names,doses:doses,med:keepMulti?origEntry.med:names.map(medText).join(", "),
+      purposes:purps,purpose:purps.join(", "),qty:(document.querySelector("input[name=qty]:checked")||{}).value||"",side:$("side").value.trim(),ts:(editingId&&origEntry?origEntry.ts:null)||Date.now()};
     if(!e.date||!e.time||!names.length||!e.qty){say("Date, time, medicine and quantity are required.",true);return}
     var ok=await save(e);
     if(ok){
-      msel.value="";$("dose").value="";
-      psel.value="";
+      var was=editingId;
+      editingId=null;origEntry=null;setEditUi(false);
+      msel.value="";$("dose").value="";psel.value="";
       Array.prototype.forEach.call(document.querySelectorAll("input[name=qty]"),function(i){i.checked=false});$("side").value="";$("time").value=nowStr();
-      say("Added "+e.med+" at "+fmtTime(e.time)+".");
+      if(was){$("date").value=todayStr();say("Saved changes to "+e.med+" at "+fmtTime(e.time)+".")}
+      else say("Added "+e.med+" at "+fmtTime(e.time)+".");
+      render();
     }
   });
 
